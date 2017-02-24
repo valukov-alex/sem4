@@ -4,19 +4,18 @@
 #include<algorithm>
 #include<vector>
 #include<string>
+#include<locale>
+
+const int WORDS_COUNT = 50;
 
 std::string prepare(std::string& s)
 {
 	std::string res;
 	std::transform(s.begin(), s.end(), s.begin(), ::tolower);
 	res = s;
+	res.erase(std::remove_if(res.begin(), res.end(), ::ispunct ), res.end());
 	
-	// FIXIT: в рассылке же писал, что так не нужно проверять
-	// нужно либо создать множество из символов пунктуации, либо воспользоваться ф-ями ispunct или isalpha
-	if ( (res[res.length()] == ',') || (res[res.length()] == '.') || (res[res.length()] == ';') )
-		res.pop_back();
-
-	return s;
+	return res;
 }
 
 struct Statistic {
@@ -24,23 +23,21 @@ struct Statistic {
 	std::string word;
 };
 
-// FIXIT: по константной ссылке нужно передать, чтобы избежать ненужного копирования
-// обычно в подобных ф-ях аргументы называют lhs и rhs: left/right hand side
-bool comp(Statistic p1, Statistic p2)
+bool comp(const Statistic& lhs, const Statistic& rhs)
 {
-	return p1.count > p2.count;
+	return lhs.count > rhs.count;
 }
 
 int main()
 {
 	Statistic stat;
-	std::ifstream file("book.txt");
+	std::ifstream file("book4.txt");
 	std::map<std::string, int> mymap;
 	std::map<std::string, int>::iterator it;
 	if (file.is_open())
 	{
 		std::string word;
-		while (!file.eof())
+		while (!file.eof()) 
 		{
 			file >> word;
 			word = prepare(word);
@@ -51,15 +48,12 @@ int main()
 		int i = 0;
 		for (it = mymap.begin(); it != mymap.end(); ++it) {
 			s.push_back(stat);
-			// it->second
-			// it->first
 			s.at(i).count = (*it).second;
 			s.at(i).word = (*it).first;
 			i++;
 		}
 		std::sort(s.begin(), s.end(), comp);
-		// FIXIT: для 50 отдельная константа
-		for ( i = 0; i < 50; i++) {
+		for ( i = 0; i < WORDS_COUNT; i++) {
 			std::cout << s[i].count << ' ' << s[i].word << std::endl;
 		}
 	}
