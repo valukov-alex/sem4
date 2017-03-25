@@ -1,160 +1,94 @@
 #include <SFML\Graphics.hpp>
-#include <math.h>
-#include <iostream>
-	
-const int K = 15;
-const int IterationCount = 20;
+#include "Vector2.h"
 
-using Centroids = std::vector<sf::Color>;
-using ClosestCentroidIndies = std::vector<int>;
+const float PI = 3.1415;
 
-sf::Color clr;
+const float TIME_QUEUE = 0.2;
 
-struct ColorBuf
+float x_size, y_size;
+
+struct Hero
 {
-	int r, b, g, a;
-	int count;
-	ColorBuf() {
-		r = 0;
-		b = 0;
-		g = 0;
-		a = 0;
-		count = 0;
+	Vector2 pos;
+	Vector2 velocity;
+	float radius;
+	Vector2 direction;
+
+	void update(float dt)
+	{
+		pos += velocity * dt;
 	}
-	ColorBuf& operator+=(const sf::Color& obj)
+};
+
+struct Bullet
+{
+	Vector2 pos;
+	Vector2 velocity;
+	float radius;
+	Vector2 direction;
+
+	void update(float dt)
 	{
-		r += obj.r;
-		b += obj.b;
-		g += obj.g;
-		a += obj.a;
-		count++;
-		return (*this);
-	};
-	void normalize()
+		pos += velocity * dt;
+	}
+};
+
+bool delete_blt(Bullet value)
+{
+	if (value.pos.x < 0 || value.pos.x > x_size || value.pos.y < 0 || value.pos.y > y_size)
+		return true;
+	else
+		return false;
+}
+
+struct Map {
+	Vector2 size;
+	Hero hero;
+	std::vector<Bullet> bullets;
+	void update(float dt)
 	{
-		r = r / count;
-		b = b / count;
-		g = g / count;
-		a = a / count;
-		count = 1;
-	};
+		hero.update(dt);
+		for (auto& b : bullets)
+			b.update(dt);
+		if (hero.pos.x > size.x)
+			hero.pos = Vector2(size.x, hero.pos.y);
+		if (hero.pos.x < 0)
+			hero.pos = Vector2(0, hero.pos.y);
+		if (hero.pos.y > size.y)
+			hero.pos = Vector2(hero.pos.x, size.y);
+		if (hero.pos.y < 0)
+			hero.pos = Vector2(hero.pos.x, 0);
+		bullets.erase(std::remove_if(bullets.begin(), bullets.end(), delete_blt), bullets.end());
+//		std::cout << bullets.size() << std::endl;
+	}
+
+
 };
 
 
-float distance(const sf::Color lhs, const sf::Color rhs)
-{
-	return sqrt(pow(lhs.r - rhs.r, 2) + pow(lhs.g - rhs.g, 2) + pow(lhs.b - rhs.b, 2));
-}
-
-Centroids initializeCentroids(const sf::Image& img, int k_)
-{
-	sf::Color pixel;
-	Centroids cntrds;
-	for (int i = 0; i < k_; ++i)
-	{
-		cntrds.push_back(clr);
-		pixel = img.getPixel(rand() % img.getSize().x, rand() % img.getSize().y);
-		cntrds[i] = pixel;
-	}
-	std::cout << std::endl;
-	return cntrds;
-}
-
-ClosestCentroidIndies findClosestCentroids(const sf::Image& img, const Centroids& cntrds)
-{
-	sf::Color pixel;
-	int w = img.getSize().x;
-	int h = img.getSize().y;
-	ClosestCentroidIndies ids(w*h);
-	for (int i = 0; i < ids.size(); ++i)
-	{
-		int h_pixel = i / w;
-		int w_pixel = i - h_pixel * w;
-		float max = 100000;
-		pixel = img.getPixel(w_pixel, h_pixel);
-		for (int j = 0; j < cntrds.size(); ++j) 
-		{
-			float ds = distance(pixel, cntrds[j]);
-			if (ds < max)
-			{
-				max = ds;
-				ids[i] = j;
-			}
-		}
-	}
-	return ids;
-}
-
-Centroids computeMeans(const sf::Image& img, const ClosestCentroidIndies&  ids, const int k_)
-{
-	Centroids cntrds;
-	ColorBuf buffer[K];
-	sf::Color pixel;
-	int w = img.getSize().x;
-	int h = img.getSize().y;
-	for (int i = 0; i < ids.size(); ++i)
-	{
-
-		int h_pixel = i / w;
-		int w_pixel = i - h_pixel * w;
-		pixel = img.getPixel(w_pixel, h_pixel);
-		buffer[ids[i]] += pixel;
-	}
-	for (int i = 0; i < k_; i++)
-	{
-		buffer[i].normalize();
-		cntrds.push_back(pixel);
-		cntrds[i].r = buffer[i].r;
-		cntrds[i].b = buffer[i].b;
-		cntrds[i].g = buffer[i].g;
-	}
-
-	return cntrds;
-
-}
-
-void changeColors(sf::Image& img, const Centroids& cntrds)
-{
-	sf::Color pixel;
-	int w = img.getSize().x;
-	int h = img.getSize().y;
-	for (int i = 0; i < w*h; ++i)
-	{
-		int h_pixel = i / w;
-		int w_pixel = i - h_pixel * w;
-		pixel = img.getPixel(w_pixel, h_pixel);
-		float max = 100000;
-		for (int j = 0; j < cntrds.size(); ++j)
-		{
-			float ds = distance(pixel, cntrds[j]);
-			if (ds < max)
-			{
-				max = ds;
-				img.setPixel(w_pixel, h_pixel, cntrds[j]);
-			}
-		}
-
-	}
-}
-
 int main()
 {
-	sf::Image Im;
-	Im.loadFromFile("page.png");
-
-	sf::RenderWindow window(sf::VideoMode(Im.getSize().x, Im.getSize().y), "My window");
-
-	Centroids centroids = initializeCentroids(Im, K);
-	
-	for (int it = 0; it < IterationCount; ++it)
-	{
-		ClosestCentroidIndies ids = findClosestCentroids(Im, centroids);
-		centroids = computeMeans(Im, ids, K);
-	}
-	changeColors(Im, centroids);
+	Map map;
+	std::cin >> map.size;
+	x_size = map.size.x;
+	y_size = map.size.y;
+	sf::RenderWindow window(sf::VideoMode(map.size.x, map.size.y), "My window");
+	Bullet bullet;
+	double preTime = 0;
+	sf::Clock clock;
 	sf::Texture texture;
-	texture.loadFromImage(Im);
-	sf::Sprite photo(texture);
+	sf::Texture texture_bullet;
+	texture.loadFromFile("naruto.png");
+	sf::Sprite naruto(texture);
+	sf::Vector2f scale = naruto.getScale();
+	naruto.setScale(scale.x / 4, scale.y / 4);
+	texture_bullet.loadFromFile("rass.png");
+	sf::Sprite rass(texture_bullet);
+	scale = rass.getScale();
+	rass.setScale(scale.x / 7, scale.y / 7);
+	sf::Sprite blt;
+	double t_q = TIME_QUEUE;
+
 	while (window.isOpen())
 	{
 		sf::Event event;
@@ -163,9 +97,59 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 		}
-		window.clear();
-		window.draw(photo);
+
+		sf::Time time = clock.getElapsedTime();
+		double dt = time.asSeconds() - preTime;
+
+		window.clear(sf::Color::Red);
+
+		map.hero.velocity = Vector2(0, 0);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+			map.hero.velocity += Vector2(-1000, 0);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+			map.hero.velocity += Vector2(1000, 0);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+			map.hero.velocity += Vector2(0, -1000);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+			map.hero.velocity += Vector2(0, 1000);
+
+
+		sf::Vector2u circleSize = naruto.getTexture()->getSize();
+		naruto.setOrigin(circleSize.x / 2, circleSize.y / 2);
+
+		sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+		map.hero.direction = Vector2(mousePosition.x, mousePosition.y) - map.hero.pos;
+
+		naruto.setPosition(map.hero.pos.x, map.hero.pos.y);
+		naruto.setRotation(90 + atan2f(map.hero.direction.y, map.hero.direction.x) * 180 / PI);
+
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+		{
+			t_q += dt;
+			if (t_q >= TIME_QUEUE)
+			{
+				bullet.pos = map.hero.pos;
+				bullet.velocity = map.hero.direction.Norm() * 700;
+				map.bullets.push_back(bullet);
+				t_q = 0;
+			}
+		}
+
+		if (!map.bullets.empty())
+			for (int i = 0; i < map.bullets.size(); i++)
+			{
+				rass.setPosition(map.bullets[i].pos.x, map.bullets[i].pos.y);
+//				blt.setTexture(texture_bullet);
+				window.draw(rass);
+			}
+
+		map.update(dt);
+
+		window.draw(naruto);
+		window.draw(rass);
 		window.display();
+
+		preTime = time.asSeconds();
 	}
 
 	return 0;
