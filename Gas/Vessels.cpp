@@ -1,5 +1,12 @@
 #include "Vessels.h"
 
+bool Vessel::belong(Particle& obj) {
+	if (obj.position.x >= top_left.x && obj.position.x < bottom_right.x && obj.position.y >= top_left.y && obj.position.y < bottom_right.y)
+		return true;
+	else
+		return false;
+}
+
 std::string Segment::crossing(Segment& obj) {
 	if (obj.start >= end || obj.end <= start)
 		return "excluded";
@@ -82,10 +89,5 @@ void Side::common_sides(Side& obj){
 						}
 }
 
-bool Vessel::belong(Particle& obj) {
-	if (obj.position.x >= top_left.x && obj.position.x < bottom_right.x && obj.position.y >= top_left.y && obj.position.y < bottom_right.y)
-		return true;
-	else
-		return false;
-}
+
 

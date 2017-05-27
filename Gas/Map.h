@@ -9,8 +9,8 @@ struct Map {
 	std::vector<Segment> seg_verticl;
 	std::vector<Segment> seg_horiz;
 	int n, m;
+	double TIME;
 	double size_basket;
-
 	double Potential();
 	double Kinetic();
 	void push_baskets(double sgm);
@@ -20,4 +20,5 @@ struct Map {
 	void contact_with_wall(Particle& obj);
 	void update_segments();
 	void push_prtcls_into_vessel(int num, float concentration, Particle& obj);
+	double get_concetration(sf::Color clr, int n_ves);
 };

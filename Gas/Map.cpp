@@ -3,9 +3,21 @@
 #include <cmath>
 #include <fstream>
 
-const double BALLS_SPEED = 2500;
+const double BALLS_SPEED = 2000;
 
 double dt1 = 0.0001;
+
+double Map::get_concetration(sf::Color clr, int n_ves) {
+	int num = 0;
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			if (!baskets[i][j].particles.empty())
+				for (auto it = baskets[i][j].particles.begin(); it != baskets[i][j].particles.end(); it++)
+					if ((*it).clr == clr && vessels[n_ves].belong(*it))
+						num++;
+	Vector2 V = vessels[n_ves].bottom_right - vessels[n_ves].top_left;
+	return num * 600000 / (V.x * V.y);
+}
 
 void Map::push_prtcls_into_vessel(int num, float concentration, Particle& obj1) {
 	Particle obj = obj1;
@@ -13,7 +25,7 @@ void Map::push_prtcls_into_vessel(int num, float concentration, Particle& obj1) 
 	std::cout << num << ") push: " << N_ptcl << std::endl;
 	int m_push = sqrt((vessels[num].bottom_right.x - vessels[num].top_left.x) * N_ptcl / (vessels[num].bottom_right.y - vessels[num].top_left.y));
 	int n_push = N_ptcl / m_push;
-	std::cout << "push: " << m_push*n_push << std::endl;
+	std::cout << "push: " << m_push * n_push << std::endl;
 	std::cout << "n,m push =  " << n_push << " " << m_push << std::endl;
 	for(int i_p = 0; i_p < n_push; i_p++)
 		for (int j_p = 0; j_p < m_push; j_p++) {
@@ -130,7 +142,7 @@ void Map::push_baskets(double sz) {
 }
 
 void Map::update(double dt) {
-
+	TIME += dt;
 /*	for (int j = 1; j < m - 1; j++)	 //  цикл по всем 
 		for (int i = 1; i < n - 1; i++) //			 корзинам
 			if (!baskets[i][j].particles.empty()) { //проверяем что корзина[i][j] не пуста
